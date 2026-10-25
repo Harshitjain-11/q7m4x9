@@ -1,0 +1,13 @@
+services:
+  windlens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: windlens:latest
+    container_name: windlens_app
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+    restart: unless-stopped
