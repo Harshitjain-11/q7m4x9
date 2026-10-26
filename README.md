@@ -323,15 +323,17 @@ backend/tests/test_validation.py::test_validation_detects_february_records_and_j
 
 ---
 
-## Deployment Guide (Vercel / Heroku)
+## Deployment Guide (Vercel)
 
-The challenge asks for a Vercel or Heroku deployment. The root multi-stage `Dockerfile` packages the React build and FastAPI service together, so Heroku Container Registry is the direct option when deploying this image. It requires the Docker CLI and Heroku CLI. Vercel supports React and Python/FastAPI deployments through its runtimes, but that path does not run this Dockerfile.
+The challenge accepts a Vercel deployment. WindLens is a React frontend plus a FastAPI API, so deploy them as two Vercel projects connected to this same GitHub repository:
 
-1. Push the public GitHub repository.
-2. For Heroku, create an app, select the `container` stack, then build and release the `web` image with the Heroku CLI (`heroku container:push web` and `heroku container:release web`).
-3. Verify the app UI and `/api/health` endpoint from an incognito window.
+1. **API project**: Import this repository, set **Root Directory** to `backend`, and deploy with the FastAPI/Python preset. Vercel detects the app in `app/main.py`; the backend data files are under `backend/data/raw`. After deployment, verify `https://<api-project>.vercel.app/api/health` reports `healthy`.
+2. **Frontend project**: Import the same repository again, set **Root Directory** to `frontend`, choose Vite, and set the environment variable `VITE_API_BASE_URL` to the API project's base URL (for example, `https://<api-project>.vercel.app`). Deploy and verify `/`, `/app`, and `/app/analysis`.
+3. Put the frontend's public URL in this README after verifying it, then open it and the API health URL in an incognito window.
 
-The two-part demo outline is in [`docs/demo-script.md`](docs/demo-script.md). The final YouTube video must be unlisted and no longer than 10 minutes; add its URL to the submission form.
+The root multi-stage `Dockerfile` is also built by [GitHub Actions](.github/workflows/docker-build.yml), so the image build does not require Docker installed on the developer's laptop. This workflow builds the image but does not publish it to a registry.
+
+The two-part demo outline is in [`docs/demo-script.md`](docs/demo-script.md). The final YouTube video must be one unlisted video containing both parts, total runtime under 10 minutes, each part at most 5 minutes; add its URL to the submission form.
 
 ---
 
@@ -377,11 +379,4 @@ The two-part demo outline is in [`docs/demo-script.md`](docs/demo-script.md). Th
 
 ## Disclosure of AI Tools
 
-In accordance with challenge requirements, the following AI development tools were utilized during the design and development of WindLens:
-- **Agentic Coding Environment**: Antigravity IDE (Google DeepMind) powered by **Gemini 3.8 Flash**.
-- **Role & Scope of AI Assistance**:
-  - Accelerated initial exploratory data analysis scripts for schema inspection and duplicate detection.
-  - Assisted in scaffolding boilerplate Pydantic schemas, FastAPI router templates, and Vite configuration.
-  - Generated unit test assertions for mathematical metric sanity checks.
-- **Human Technical Oversight**:
-  - All domain logic, market cutoff definitions (Elexon BSC D-1 auction timings), sign conventions (Forecast − Actual), look-ahead bias proofs, boundary isolation of February 1st records, and architectural decisions were explicitly verified, reviewed, and tested against live data files.
+AI assistance was used during WindLens development and refinement. Tools used include Google Antigravity/Gemini (as recorded during the earlier project work) and OpenAI Codex. Assistance included code scaffolding and revision, data-handling analysis, frontend design and implementation, documentation, and Docker/GitHub Actions setup. The submitted developer is responsible for reviewing the generated work and should be able to explain the forecast cutoff, interval alignment, metric definitions, and limitations. The application is a historical volumetric evaluation prototype; it does not calculate live market prices, cashout costs, or trading profit and loss.
