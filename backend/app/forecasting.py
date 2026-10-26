@@ -208,7 +208,7 @@ def align_forecast_and_actuals(
     alignment_report = AlignmentReport(
         alignment_method=alignment_method,
         cutoff_strategy=cutoff_strategy,
-        total_target_hours_january=total_hours,
+        total_target_hours=total_hours,
         matched_observations=matched_count,
         unmatched_observations=unmatched_count,
         coverage_pct=coverage_pct,

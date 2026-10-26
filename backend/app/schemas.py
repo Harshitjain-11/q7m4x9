@@ -37,7 +37,7 @@ class DataQualityReport(BaseModel):
 class AlignmentReport(BaseModel):
     alignment_method: str
     cutoff_strategy: str
-    total_target_hours_january: int
+    total_target_hours: int
     matched_observations: int
     unmatched_observations: int
     coverage_pct: float

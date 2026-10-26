@@ -9,8 +9,10 @@ def compute_error_metrics(df_aligned: pd.DataFrame, total_target_hours: int = 74
     
     Sign convention for error:
       Error = Forecast - Actual (MW)
-      Positive error (> 0): Over-forecast (utility over-purchased power)
-      Negative error (< 0): Under-forecast (utility under-purchased power, exposed to system imbalance)
+      Positive error (> 0): Forecast wind exceeded actual outturn; using it for procurement
+                            can leave the utility short of generation and require balancing/backup.
+      Negative error (< 0): Actual wind exceeded the forecast; using it can cause excess
+                            conventional procurement.
     """
     matched = df_aligned[df_aligned["status"] == "matched"].copy()
     matched_count = len(matched)

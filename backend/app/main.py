@@ -1,6 +1,14 @@
 import os
+import sys
+from datetime import date
 from pathlib import Path
 from typing import Optional
+
+# Ensure backend root is in sys.path so 'app.*' imports work from project root or inside backend
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -27,7 +35,7 @@ app = FastAPI(
 # Enable CORS for frontend development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -72,11 +80,22 @@ def get_summary(
     alignment: str = Query("exact", description="Cadence alignment method: 'exact' (:00 only) or 'hourly_mean'"),
     custom_cutoff_hour: int = Query(12, ge=0, le=23, description="Hour on D-1 for da_custom cutoff (0-23 UTC)"),
     custom_lead_hours: float = Query(24.0, ge=0, le=72, description="Hours lead time for custom rolling cutoff"),
+    start_date: Optional[date] = Query(None, description="Optional inclusive start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="Optional inclusive end date (YYYY-MM-DD)"),
 ):
     """
     Computes summary forecast accuracy KPIs, daily error trends,
     alignment coverage, and data quality diagnostics.
     """
+    january_start = date(2026, 1, 1)
+    february_start = date(2026, 2, 1)
+    start_date = start_date or january_start
+    end_date = end_date or date(2026, 1, 31)
+    if start_date > end_date:
+        raise HTTPException(status_code=422, detail="start_date must be on or before end_date")
+    if start_date < january_start or end_date >= february_start:
+        raise HTTPException(status_code=422, detail="date range must stay within January 2026")
+
     try:
         df_aligned, alignment_report = align_forecast_and_actuals(
             data_loader=loader,
@@ -85,7 +104,27 @@ def get_summary(
             custom_cutoff_hour=custom_cutoff_hour,
             custom_lead_hours=custom_lead_hours,
         )
-        metrics, daily_metrics = compute_error_metrics(df_aligned)
+        start = pd.Timestamp(start_date, tz="UTC")
+        end = pd.Timestamp(end_date, tz="UTC")
+        end_exclusive = end.normalize() + pd.Timedelta(days=1)
+        df_aligned = df_aligned[
+            (df_aligned["startTime_dt"] >= start.normalize()) &
+            (df_aligned["startTime_dt"] < end_exclusive)
+        ].copy()
+        target_hours = int((end_exclusive - start.normalize()).total_seconds() // 3600)
+        metrics, daily_metrics = compute_error_metrics(df_aligned, total_target_hours=target_hours)
+        alignment_report.total_target_hours = target_hours
+        alignment_report.matched_observations = metrics.matched_count
+        alignment_report.unmatched_observations = target_hours - metrics.matched_count
+        alignment_report.coverage_pct = round(metrics.coverage_pct, 2)
+        alignment_report.excluded_target_hours = (
+            df_aligned[df_aligned["status"] == "missing_forecast"]["startTime_dt"]
+            .dt.strftime("%Y-%m-%dT%H:%M:%SZ").tolist()
+        )
+        alignment_report.notes.append(
+            f"Summary metrics and coverage are scoped to {start_date.isoformat()} through {end_date.isoformat()} "
+            f"({target_hours} target hours). Source quality diagnostics cover the full committed datasets."
+        )
         quality = run_data_diagnostics(loader)
 
         return SummaryResponse(
@@ -164,4 +203,19 @@ def get_timeseries(
 # Mount frontend production build if available
 frontend_dist_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 if frontend_dist_dir.exists() and (frontend_dist_dir / "index.html").exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist_dir), html=True), name="frontend")
+    from fastapi.responses import FileResponse
+
+    # Mount assets directory for JS/CSS chunks
+    assets_dir = frontend_dist_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    # SPA catch-all fallback for client-side routing (/app, /app/analysis, etc.)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API route not found")
+        file_path = frontend_dist_dir / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(frontend_dist_dir / "index.html")

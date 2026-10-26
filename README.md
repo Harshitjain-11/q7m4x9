@@ -18,7 +18,7 @@
    - [Method 2: Standalone Production Mode (FastAPI serves React)](#method-2-standalone-production-mode-fastapi-serves-react)
    - [Method 3: Docker & Docker Compose](#method-3-docker--docker-compose)
 10. [Automated Test Suite](#automated-test-suite)
-11. [Deployment Guide (Vercel / Render / Heroku / Fly.io)](#deployment-guide-vercel--render--heroku--flyio)
+11. [Deployment Guide (Vercel / Heroku)](#deployment-guide-vercel--heroku)
 12. [Five-Minute Customer & Technical Walkthrough Scripts](#five-minute-customer--technical-walkthrough-scripts)
 13. [Limitations & Future Roadmap](#limitations--future-roadmap)
 14. [Disclosure of AI Tools](#disclosure-of-ai-tools)
@@ -29,9 +29,9 @@
 
 In the UK wholesale electricity market (governed by the Balancing and Settlement Code / BSC):
 - **Day-Ahead Electricity Purchasing**: Utilities and power suppliers submit bids and trade power on Day $D-1$ across the Day-Ahead daily auctions (e.g., EPEX SPOT and Nord Pool at 11:00 UTC) or bilateral contracts up to gate closure.
-- **Imbalance Cashout Exposure**: Any deviation between contracted generation and physical outturn is settled through the Elexon System Buy Price (SBP) / System Sell Price (SSP) imbalance mechanism. 
-  - **Over-forecasting** ($F > A$) causes the utility to over-contract, dumping surplus power at potentially deflated or negative prices.
-  - **Under-forecasting** ($F < A$) leaves the utility short, forcing emergency purchases at high imbalance cashout prices.
+- **Imbalance Cashout Exposure**: Any deviation between contracted generation and physical outturn is settled through the Elexon System Buy Price (SBP) / System Sell Price (SSP) imbalance mechanism.
+  - **Wind over-forecasting** ($F > A$) means less wind is available than expected. If procurement relies on the forecast unadjusted, the utility may be short of generation and need balancing or backup power.
+  - **Wind under-forecasting** ($F < A$) means more wind is available than expected. If procurement relies on the forecast unadjusted, the utility may procure more conventional power than needed.
 
 **WindLens** provides utility energy buyers with empirical accuracy metrics, error distributions, and historical backtests strictly aligned to simulated decision deadlines.
 
@@ -131,8 +131,18 @@ All metrics are computed strictly on valid, matched observation pairs ($N$):
 
 ## Application Architecture & Tech Stack
 
+- **Design Philosophy**: **"Editorial Energy Intelligence"** — a balance of premium climate-tech design, sophisticated data visualization, and institutional analytical credibility.
+  - Palette: Warm chalk (`#F6F5EF`), deep forest green (`#18352D`), emerald actual series (`#14866D`), teal forecast series (`#247C8B`), restrained amber risk (`#C78336`), and muted sage surfaces (`#EFECE4`).
+  - Typography: Editorial display serif (*Newsreader*) paired with clean sans (*Inter*) and tabular numerals (*JetBrains Mono*).
+  - Wind-Inspired Motion: Lightweight HTML5 Canvas streamline simulation rendering aerodynamic atmospheric flow vectors with cursor deviation and `prefers-reduced-motion` compliance.
+- **Client Routing**: Full multi-route architecture powered by `react-router-dom`:
+  - **`/`**: Public product landing page with hero, live preview card, 3 value pillars, 3-step pipeline flow, trust contract, and institutional footer.
+  - **`/app`**: Primary analytics workspace overview (Decision context bar, 4 primary KPIs, Chart.js time-series, diurnal profile, settlement delivery intervals table with CSV export).
+  - **`/app/analysis`**: Forecast accuracy and cutoff vintage sensitivity dossier (D-1 12:00 vs D-1 17:00 vs rolling 4h gate closure).
+  - **`/app/data-quality`**: 5-stage data lineage audit, record reconciliation, null checks, and boundary isolation.
+  - **`/app/methodology`**: Formal BSC Section T mathematical formulas, look-ahead isolation guarantees, and known data constraints.
 - **Backend**: Python 3.12+ / FastAPI / Pandas / NumPy / Pydantic / Uvicorn.
-- **Frontend**: React 18+ / Vite / Vanilla CSS (Tailored dark energy-operations design system) / Chart.js + React-Chartjs-2 / Lucide-React.
+- **Frontend**: React 19 / Vite 8 / Vanilla CSS with design tokens / Chart.js + React-Chartjs-2 / Lucide-React / React Router 7.
 - **Testing**: Pytest (13 unit and integration tests covering loader, validation, anti-lookahead, metrics, and API endpoints).
 - **Containerization**: Multi-stage production `Dockerfile` and `docker-compose.yml`.
 
@@ -145,7 +155,7 @@ windlens/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py            # FastAPI endpoints, CORS, static frontend mount
+│   │   ├── main.py            # FastAPI endpoints, CORS, static frontend mount & SPA fallback
 │   │   ├── data_loader.py     # Resilient JSON loading, schema & count checks
 │   │   ├── validation.py      # Diagnostic checks, Feb 1 isolation, cadence reports
 │   │   ├── forecasting.py     # Anti-lookahead vintage selection & alignment
@@ -169,16 +179,19 @@ windlens/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Header.jsx                # Branding & live backend health pill
+│   │   │   ├── LandingPage.jsx           # Public product landing page (/)
+│   │   │   ├── WindFlowStreamlines.jsx   # Canvas streamline flow motion graphic
+│   │   │   ├── Header.jsx                # Institutional header with route navigation & status
 │   │   │   ├── ControlBar.jsx            # Cutoff, alignment, & date filters
-│   │   │   ├── KpiGrid.jsx               # Real computed KPI cards
-│   │   │   ├── TimeSeriesChart.jsx       # Chart.js Actual vs Forecast line chart
-│   │   │   ├── ErrorDistributionChart.jsx# Imbalance error deviation bar chart
-│   │   │   ├── DailyPerformanceTable.jsx # 31-day daily accuracy breakdown
-│   │   │   └── DataQualityAudit.jsx      # Interactive data integrity accordion
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css                     # Custom dark energy-operations design system
+│   │   │   ├── KpiGrid.jsx               # Editorial 4-primary KPI cards with tabular numerals
+│   │   │   ├── TimeSeriesChart.jsx       # Chart.js Actual (emerald) vs Forecast (teal) line chart
+│   │   │   ├── ErrorDistributionChart.jsx# Error deviation & diurnal bias charts
+│   │   │   ├── DeliveryIntervalsTable.jsx# Settlement delivery intervals audit log with CSV export
+│   │   │   ├── DailyPerformanceTable.jsx # 31-day daily accuracy breakdown table
+│   │   │   └── DataQualityAudit.jsx      # 5-stage ingestion lineage & governance audit
+│   │   ├── App.jsx                       # Multi-route controller and workspace manager
+│   │   ├── main.jsx                      # React 19 entry with BrowserRouter
+│   │   └── index.css                     # Editorial Energy Intelligence design system
 │   ├── index.html
 │   ├── package.json
 │   └── vite.config.js                    # Vite configuration with /api dev proxy
@@ -310,25 +323,15 @@ backend/tests/test_validation.py::test_validation_detects_february_records_and_j
 
 ---
 
-## Deployment Guide (Vercel / Render / Heroku / Fly.io)
+## Deployment Guide (Vercel / Heroku)
 
-### Option A: Unified Container Deployment (Render / Heroku / Fly.io) [Recommended]
-Since the root `Dockerfile` compiles the React frontend and packages it inside the FastAPI backend, you can deploy the unified repository directly:
-1. Connect the GitHub repository to **Render** (as a Web Service) or **Fly.io** (`fly launch`).
-2. Set Environment Variables:
-   - `PORT=8000`
-   - `PYTHONUNBUFFERED=1`
-3. Deploy! The service will expose both the interactive UI and the API on a single URL.
+The challenge asks for a Vercel or Heroku deployment. The root multi-stage `Dockerfile` packages the React build and FastAPI service together, so Heroku Container Registry is the direct option when deploying this image. It requires the Docker CLI and Heroku CLI. Vercel supports React and Python/FastAPI deployments through its runtimes, but that path does not run this Dockerfile.
 
-### Option B: Decoupled Deployment (Vercel Frontend + Render Backend)
-1. **Backend on Render**:
-   - Build Command: `pip install -r backend/requirements.txt`
-   - Start Command: `cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-2. **Frontend on Vercel**:
-   - Root directory: `frontend`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Environment Variable: `VITE_API_BASE_URL=https://your-backend-service.onrender.com`
+1. Push the public GitHub repository.
+2. For Heroku, create an app, select the `container` stack, then build and release the `web` image with the Heroku CLI (`heroku container:push web` and `heroku container:release web`).
+3. Verify the app UI and `/api/health` endpoint from an incognito window.
+
+The two-part demo outline is in [`docs/demo-script.md`](docs/demo-script.md). The final YouTube video must be unlisted and no longer than 10 minutes; add its URL to the submission form.
 
 ---
 
@@ -336,25 +339,25 @@ Since the root `Dockerfile` compiles the React frontend and packages it inside t
 
 ### Customer Demo (5 Minutes: For Energy Utility Commercial Lead)
 1. **0:00 – 1:00 | The Business Problem**:
-   - *"Welcome to WindLens. When our utility buys day-ahead wind power, we face severe cashout penalties if our contracted volumes deviate from outturn generation. If we over-forecast, we dump surplus into the system; if we under-forecast, we buy back at peak imbalance prices."*
+   - *"Welcome to WindLens. We compare day-ahead wind forecasts with actual generation so a purchasing team can see forecast error and the risk of relying on a forecast that overstates or understates available wind. This pilot measures volume error; it does not calculate imbalance cash costs."*
 2. **1:00 – 2:30 | The Operational Dashboard**:
-   - *"Here on the dashboard, we are evaluating January 2026 outturn against Elexon BMRS WINDFOR forecasts. Notice our primary KPI: under the standard D-1 12:00 UTC day-ahead auction cutoff, our Mean Absolute Error is 1,928 MW. More critically, our System Bias is +1,724 MW, showing that the system forecaster persistently over-estimated wind generation in January. In the Error Deviation chart, we see continuous amber bars, indicating long positions that needed balancing."*
+   - *"Here the KPI cards summarize the selected delivery window and cutoff. The MAE shows typical absolute error, while signed bias shows whether forecast wind was above or below outturn on average. The chart and interval table let us inspect individual delivery hours and their selected forecast publication times."*
 3. **2:30 – 3:45 | Interactive Decision Cutoffs**:
-   - *"Let's switch the decision cutoff in the top bar to 'Rolling 4h Lead Time'. Watch how our MAE immediately drops from 1,928 MW down to 1,260 MW, and our correlation jumps to 0.98. This proves that intra-day trading adjustments close to gate closure save our desk hundreds of thousands of pounds in volumetric risk."*
+   - *"Changing the cutoff reruns the historical selection using only vintages available by that decision time. On the analysis page, the D-1 noon and 17:00 MAE values are computed from the selected window. A later cutoff comparison is evidence about forecast accuracy only; it is not a cash-savings estimate."*
 4. **3:45 – 5:00 | Risk Management & Transparency**:
-   - *"Finally, our daily breakdown table identifies extreme shock days—like January 9th—where rapid storm front shifts caused over 4,000 MW of forecast error. This enables our desk to apply dynamic hedging margins during high-volatility forecasts."*
+   - *"Finally, the daily breakdown and data-quality views show evaluated hours, error, and missing coverage. They support further review of volatile days without claiming a causal weather explanation or a trading outcome."*
 
 ---
 
 ### Technical Architecture Walkthrough (5 Minutes: For Technical Lead)
 1. **0:00 – 1:15 | Architecture & Design**:
-   - *"WindLens is built with Python/FastAPI for vectorized statistical computation and React 18 for high-frequency operations visualization. We prioritized zero-fabrication data integrity above all else."*
+   - *"WindLens is built with Python and FastAPI for data loading and metric calculation, and React 19 for the web interface. The analysis uses saved January BMRS records and reports its alignment and coverage assumptions."*
 2. **1:15 – 2:30 | Data Engineering & Look-Ahead Protection**:
    - *"During data ingestion of the 18,104 WINDFOR records, we discovered 3,721 rows with publish timestamps after the target start time. In `backend/app/forecasting.py`, we implemented strict anti-lookahead filtering. For any target delivery hour $h$ on day $D$, only forecasts published on or before the simulated cutoff (e.g. D-1 12:00) are considered. We wrote automated unit tests proving that a forecast published after cutoff is never selected."*
 3. **2:30 – 3:45 | Cadence Resolution & Boundary Exclusions**:
    - *"The FUELHH actuals stream arrived at 30-minute intervals (1,536 rows), while WINDFOR was hourly (744 January intervals). Rather than duplicating forecasts into half-hours, WindLens provides two honest modes: Exact Match (:00 only) and Hourly Mean. Furthermore, our validation engine detected 48 records from February 1st in FUELHH and cleanly quarantined them from January metrics."*
 4. **3:45 – 5:00 | Testing, Docker & Deployment**:
-   - *"We have 13 passing unit tests verifying mathematical accuracy and look-ahead isolation. The entire application is containerized with a multi-stage Dockerfile that compiles the React SPA and serves it directly through FastAPI, allowing one-click deployment to Render, Heroku, or Fly.io."*
+   - *"The repository includes tests for the loader, metric calculations, cutoff selection, and API responses. The root multi-stage Dockerfile builds the React app and packages it with FastAPI. A deployment URL should be included here once a public deployment is available."*
 
 ---
 

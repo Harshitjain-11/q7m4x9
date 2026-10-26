@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, AlertCircle, CheckCircle } from 'lucide-react';
+import { CalendarDays, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
 
 export default function DailyPerformanceTable({ dailyMetrics, cutoffStrategy }) {
   if (!dailyMetrics || dailyMetrics.length === 0) {
@@ -7,60 +7,72 @@ export default function DailyPerformanceTable({ dailyMetrics, cutoffStrategy }) 
   }
 
   return (
-    <div className="chart-card">
-      <div className="chart-header">
-        <div className="chart-title-group">
-          <h2>
-            <CalendarDays size={18} style={{ color: 'var(--color-forecast)' }} />
-            Daily Forecast Performance & Purchasing Accuracy
-          </h2>
-          <p>
-            Breakdown across January 2026. Useful for identifying extreme weather events and high-imbalance trading days.
-          </p>
+    <div className="table-card-editorial">
+      <div className="table-header-strip">
+        <div className="table-title">
+          <CalendarDays size={15} style={{ color: 'var(--ink-secondary)' }} />
+          <span>Daily Aggregated Performance & Purchasing Accuracy</span>
+          <span className="brand-badge tabular-nums">
+            {dailyMetrics.length} Days
+          </span>
+        </div>
+
+        <div style={{ fontSize: '0.75rem', color: 'var(--ink-secondary)', fontFamily: 'var(--font-mono)' }}>
+          ELEXON BMRS SETTLEMENT AUDIT
         </div>
       </div>
 
-      <div className="data-table-container">
-        <table className="styled-table">
+      <div className="table-container-scroll">
+        <table className="editorial-table">
           <thead>
             <tr>
               <th>Delivery Date</th>
-              <th>Obs</th>
-              <th>MAE (MW)</th>
-              <th>RMSE (MW)</th>
-              <th>System Bias (MW)</th>
-              <th>Actual Energy</th>
-              <th>Forecast Energy</th>
-              <th>Imbalance Risk Profile</th>
+              <th style={{ textAlign: 'right' }}>Evaluated Hours</th>
+              <th style={{ textAlign: 'right' }}>MAE (MW)</th>
+              <th style={{ textAlign: 'right' }}>RMSE (MW)</th>
+              <th style={{ textAlign: 'right' }}>Daily Bias (MW)</th>
+              <th style={{ textAlign: 'right' }}>Actual Energy</th>
+              <th style={{ textAlign: 'right' }}>Forecast Energy</th>
+              <th>Forecast pattern</th>
             </tr>
           </thead>
           <tbody>
             {dailyMetrics.map((row) => {
               const isOver = row.bias_mw > 0;
-              const biasColor = isOver ? 'var(--color-surplus)' : 'var(--color-short)';
-              const isHighError = row.mae_mw > 3000;
+              const isHighDeviation = row.mae_mw > 3000;
+              const biasColor = isOver ? 'var(--color-amber-risk)' : 'var(--color-forecast)';
 
               return (
-                <tr key={row.date}>
-                  <td className="tabular-nums" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                <tr key={row.date} className={isHighDeviation ? 'highlight-peak' : ''}>
+                  <td className="tabular-nums" style={{ fontWeight: 600 }}>
                     {row.date}
                   </td>
-                  <td className="tabular-nums">{row.observations}h</td>
-                  <td className="tabular-nums">{row.mae_mw.toLocaleString()}</td>
-                  <td className="tabular-nums">{row.rmse_mw.toLocaleString()}</td>
-                  <td className="tabular-nums" style={{ color: biasColor, fontWeight: 500 }}>
-                    {row.bias_mw > 0 ? `+${row.bias_mw.toLocaleString()}` : row.bias_mw.toLocaleString()}
+                  <td className="tabular-nums" style={{ textAlign: 'right', color: 'var(--ink-secondary)' }}>
+                    {row.observations}h
                   </td>
-                  <td className="tabular-nums">{row.actual_gwh.toLocaleString()} GWh</td>
-                  <td className="tabular-nums">{row.forecast_gwh.toLocaleString()} GWh</td>
+                  <td className="tabular-nums" style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {row.mae_mw.toLocaleString()} MW
+                  </td>
+                  <td className="tabular-nums" style={{ textAlign: 'right', color: 'var(--ink-secondary)' }}>
+                    {row.rmse_mw.toLocaleString()} MW
+                  </td>
+                  <td className="tabular-nums" style={{ textAlign: 'right', color: biasColor, fontWeight: 600 }}>
+                    {row.bias_mw > 0 ? `+${row.bias_mw.toLocaleString()}` : row.bias_mw.toLocaleString()} MW
+                  </td>
+                  <td className="tabular-nums" style={{ textAlign: 'right', color: 'var(--color-actual)' }}>
+                    {row.actual_gwh.toLocaleString()} GWh
+                  </td>
+                  <td className="tabular-nums" style={{ textAlign: 'right', color: 'var(--color-forecast)' }}>
+                    {row.forecast_gwh.toLocaleString()} GWh
+                  </td>
                   <td>
-                    {isHighError ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-short)', fontSize: '0.75rem' }}>
-                        <AlertCircle size={13} /> High Deviation Day
+                    {isHighDeviation ? (
+                      <span className="tag-badge amber">
+                        <AlertCircle size={10} /> High Forecast Error
                       </span>
                     ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-actual)', fontSize: '0.75rem' }}>
-                        <CheckCircle size={13} /> Stable
+                      <span className="tag-badge emerald">
+                        <CheckCircle size={10} /> Lower Error Day
                       </span>
                     )}
                   </td>

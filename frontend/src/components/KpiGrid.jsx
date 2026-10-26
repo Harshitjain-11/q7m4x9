@@ -1,117 +1,77 @@
 import React from 'react';
-import { Target, TrendingUp, Compass, Zap, Percent, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Gauge, Target, TrendingUp } from 'lucide-react';
+
+const number = (value, digits = 0) => Number(value ?? 0).toLocaleString(undefined, {
+  minimumFractionDigits: digits,
+  maximumFractionDigits: digits,
+});
 
 export default function KpiGrid({ metrics, alignment }) {
   if (!metrics) {
     return (
-      <div className="kpi-grid">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="kpi-card">
-            <div className="kpi-title">Loading KPI...</div>
-            <div className="kpi-value" style={{ opacity: 0.3 }}>---</div>
-          </div>
-        ))}
-      </div>
+      <section className="metrics-grid" aria-label="Performance metrics" aria-busy="true">
+        {[0, 1, 2, 3].map((item) => <div className="metric-card metric-skeleton" key={item} />)}
+      </section>
     );
   }
 
-  const isPositiveBias = metrics.bias_mw > 0;
-  const biasLabel = isPositiveBias ? 'Over-forecast' : metrics.bias_mw < 0 ? 'Under-forecast' : 'Zero Bias';
-  const biasColor = isPositiveBias ? 'var(--color-surplus)' : 'var(--color-short)';
+  const biasPositive = metrics.bias_mw > 0;
+  const cards = [
+    {
+      label: 'Mean absolute error',
+      value: number(metrics.mae_mw),
+      unit: 'MW',
+      note: 'Average size of hourly forecast miss',
+      icon: Target,
+      tone: 'neutral',
+    },
+    {
+      label: 'Mean forecast bias',
+      value: `${metrics.bias_mw > 0 ? '+' : ''}${number(metrics.bias_mw)}`,
+      unit: 'MW',
+      note: biasPositive ? 'Forecast wind above actual outturn' : metrics.bias_mw < 0 ? 'Actual wind above forecast' : 'Forecast and outturn balanced on average',
+      icon: TrendingUp,
+      tone: biasPositive ? 'amber' : metrics.bias_mw < 0 ? 'teal' : 'neutral',
+    },
+    {
+      label: 'Matched coverage',
+      value: number(metrics.coverage_pct, 1),
+      unit: '%',
+      note: `${number(metrics.matched_count)} of ${number(alignment?.total_target_hours)} delivery hours`,
+      icon: CheckCircle2,
+      tone: metrics.coverage_pct >= 95 ? 'teal' : 'amber',
+    },
+    {
+      label: 'Weighted absolute error',
+      value: number(metrics.wape_pct, 1),
+      unit: '%',
+      note: 'Absolute error relative to actual generation',
+      icon: Gauge,
+      tone: 'neutral',
+    },
+  ];
 
   return (
-    <div className="kpi-grid">
-      {/* MAE */}
-      <div className="kpi-card">
-        <div className="kpi-header">
-          <span className="kpi-title">Mean Absolute Error</span>
-          <Target className="kpi-icon" />
-        </div>
-        <div className="kpi-value tabular-nums">
-          {metrics.mae_mw?.toLocaleString()}
-          <span className="kpi-unit">MW</span>
-        </div>
-        <div className="kpi-subtitle">
-          Average magnitude of hourly purchasing deviation
-        </div>
-      </div>
-
-      {/* RMSE */}
-      <div className="kpi-card">
-        <div className="kpi-header">
-          <span className="kpi-title">Root Mean Squared Error</span>
-          <TrendingUp className="kpi-icon" />
-        </div>
-        <div className="kpi-value tabular-nums">
-          {metrics.rmse_mw?.toLocaleString()}
-          <span className="kpi-unit">MW</span>
-        </div>
-        <div className="kpi-subtitle">
-          Penalizes large volumetric forecasting shocks
-        </div>
-      </div>
-
-      {/* Bias / Mean Error */}
-      <div className="kpi-card">
-        <div className="kpi-header">
-          <span className="kpi-title">System Bias (Mean Error)</span>
-          <Compass className="kpi-icon" />
-        </div>
-        <div className="kpi-value tabular-nums" style={{ color: biasColor }}>
-          {metrics.bias_mw > 0 ? `+${metrics.bias_mw.toLocaleString()}` : metrics.bias_mw?.toLocaleString()}
-          <span className="kpi-unit">MW</span>
-        </div>
-        <div className="kpi-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ fontWeight: 600, color: biasColor }}>{biasLabel}</span>
-          <span>(Forecast − Actual)</span>
-        </div>
-      </div>
-
-      {/* WAPE */}
-      <div className="kpi-card">
-        <div className="kpi-header">
-          <span className="kpi-title">WAPE</span>
-          <Percent className="kpi-icon" />
-        </div>
-        <div className="kpi-value tabular-nums">
-          {metrics.wape_pct}%
-        </div>
-        <div className="kpi-subtitle">
-          Normalized error: {metrics.nrmse_pct}% nRMSE
-        </div>
-      </div>
-
-      {/* Correlation */}
-      <div className="kpi-card">
-        <div className="kpi-header">
-          <span className="kpi-title">Correlation (Pearson r)</span>
-          <Zap className="kpi-icon" />
-        </div>
-        <div className="kpi-value tabular-nums">
-          {metrics.correlation}
-        </div>
-        <div className="kpi-subtitle">
-          Tracking linearity between forecast and actuals
-        </div>
-      </div>
-
-      {/* Evaluation Coverage */}
-      <div className="kpi-card">
-        <div className="kpi-header">
-          <span className="kpi-title">Evaluated Coverage</span>
-          {metrics.coverage_pct >= 95 ? (
-            <CheckCircle2 className="kpi-icon" style={{ color: 'var(--color-actual)' }} />
-          ) : (
-            <AlertCircle className="kpi-icon" style={{ color: 'var(--color-surplus)' }} />
-          )}
-        </div>
-        <div className="kpi-value tabular-nums">
-          {metrics.coverage_pct}%
-        </div>
-        <div className="kpi-subtitle">
-          {metrics.matched_count} / {alignment?.total_target_hours_january || 744} hours matched
-        </div>
-      </div>
-    </div>
+    <section className="metrics-grid" aria-label="Performance metrics">
+      {cards.map(({ label, value, unit, note, icon: Icon, tone }, index) => (
+        <article className={`metric-card metric-${tone}`} key={label}>
+          <div className="metric-topline">
+            <span>{label}</span>
+            <span className="metric-icon"><Icon size={16} strokeWidth={1.8} /></span>
+          </div>
+          <div className="metric-reading">
+            <strong>{value}</strong>
+            <span>{unit}</span>
+          </div>
+          <div className="metric-footline">
+            {index === 0 && <Activity size={13} />}
+            {index === 1 && <AlertTriangle size={13} />}
+            {index === 2 && <CheckCircle2 size={13} />}
+            {index === 3 && <Gauge size={13} />}
+            <span>{note}</span>
+          </div>
+        </article>
+      ))}
+    </section>
   );
 }
