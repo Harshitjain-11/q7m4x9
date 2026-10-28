@@ -12,7 +12,7 @@ The challenge requires one unlisted YouTube video with two parts and a total run
 
 ## Part 2 — Technical review and handover (about 4 minutes)
 
-1. **Architecture (45 sec):** Show the repository structure. Describe React/Vite, FastAPI, the supplied BMRS files, and how the API serves the built UI.
+1. **Architecture (45 sec):** Show the repository structure. Describe React/Vite, FastAPI, the supplied BMRS files, and how Vercel routes the frontend and API services. Locally, Vite proxies API requests to FastAPI; the root Docker image can also serve the built UI from FastAPI.
 2. **Forecast selection (60 sec):** Explain that each delivery hour uses only forecast publications available by the chosen decision cutoff, preventing look-ahead leakage.
 3. **Alignment and metrics (60 sec):** Explain hourly WINDFOR forecasts versus half-hourly FUELHH actuals, exact-hour and hourly-mean modes, and how unmatched hours affect coverage.
 4. **Data checks (45 sec):** Show the data integrity page, boundary exclusions, and where the methodology is implemented.
