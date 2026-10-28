@@ -1,4 +1,4 @@
-from typing import Tuple, List, Dict, Optional, Literal
+from typing import Any, Tuple, List, Dict, Optional, Literal
 import pandas as pd
 import numpy as np
 from app.data_loader import DataLoader, loader
